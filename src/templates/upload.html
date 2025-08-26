@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ECG Signal analysis</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Upload ECG  File</h1>
+    <form id="upload-form" action="/process" method="POST" enctype="multipart/form-data">
+        <input type="file" id="file" name="ecg-file" accept=".mat">
+        <button type="submit" id="button1" onclick="uploadAndProcess()">Upload and Process</button>
+	<p id="warning-message" style="color: red;"></p>
+    </form>
+    <br>
+    <div class="progress-container">
+        <div class="progress-bar" id="my-progress-bar">0%</div>
+    </div>
+    <br>
+
+    <form id="plot" method="POST" action="/show-image">
+        <button type="submit" onclick="check()">Plot ECG</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+	function check() {
+		const input = document.getElementById('file');
+		const button1 = document.getElementById('button1');
+
+		if(input.value==''){
+			alert('Please upload the file');
+			event.preventDefault();
+		}	
+		
+		else if(button1.dataset.clicked != "true"){
+			alert('ECG not processed');
+			event.preventDefault();
+		}
+	}
+					
+    var isProgressBarFull = false;
+        var isResultReceived = false;
+        document.getElementById('upload-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        
+
+        try {
+        const response = await fetch('/process', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const result = data.result;
+        if (!isProgressBarFull) { // Check if progress bar is not already at 100%
+                    setProgressBarTo100();
+        }
+        isResultReceived = true;
+        showResult();
+        document.getElementById('result').innerHTML = `Result: ${result}`;
+    }catch (error) {
+        console.error('Error:', error);}
+    });
+
+    function uploadAndProcess() {
+	const button1 = document.getElementById('button1');
+	button1.dataset.clicked = "true";
+        const input = document.getElementById('file');
+        if(input.value==''){
+			alert('Please upload the file');
+			event.preventDefault();
+        }
+
+        if(isResultReceived)
+        {
+            hideResult();
+            resetProgressBar();
+        }
+        if (!isProgressBarFull && input.value != '') { // Check if progress bar is not already at 100%  
+            move();
+                
+            }
+    }
+    
+    var i = 0;
+    function move() {
+    if (i == 0 && !isResultReceived) {
+        var elem = document.getElementById("my-progress-bar");
+        var width = 0;
+        var intervalId = setInterval(frame, 400);
+        function frame() {
+        if (width >= 100 || isResultReceived) {
+            clearInterval(intervalId);
+            isProgressBarFull = true;
+        } else {
+            width++;
+            elem.style.width = width + "%";
+            elem.innerHTML = width  + "%";
+        }
+        }
+  }
+
+}
+
+
+function setProgressBarTo100() {
+    var elem = document.getElementById("my-progress-bar");
+    elem.style.width = "100%";
+    elem.innerHTML = "100%";
+    isProgressBarFull = true;
+  }
+
+  function resetProgressBar() {
+    var elem = document.getElementById("my-progress-bar");
+    elem.style.width = "0%";
+    elem.innerHTML = "0%";
+    isResultReceived = false; // Set the flag to false when resetting progress bar
+    isProgressBarFull=false;
+}
+
+function hideResult() {
+    document.getElementById('result').style.display = 'none';
+}
+
+function showResult() {
+    document.getElementById('result').style.display = 'block';
+}
+
+function hideProgress() {
+        document.getElementById('my-progress-bar').style.display = 'none';
+}
+
+function showProgress() {
+        document.getElementById('my-progress-bar').style.display = 'block';
+}
+      
+    </script>
+</body>
+</html>
